@@ -1,4 +1,4 @@
-from template import *
+from stemp import *
 
 def test_empty_tag():
     assert unicode(tag('a')) == u'<a />'
