@@ -1,41 +1,72 @@
-class tag(object):
-    def __init__(self, name, content=None, attrs=None, encoding='utf-8'):
-        self.name = name
-        self.attrs = {} if attrs is None else attrs
-        self.content = [] if content is None else content
+from itertools import imap
+
+class doc(object):
+    def __init__(self, parts=[], encoding='utf-8'):
+        self.parts = parts
         self.encoding = encoding
     
     def __eq__(self, other):
-        return (self.name == other.name
-            and self.attrs == other.attrs
-            and self.content == other.content
+        return (self.parts == other.parts
             and self.encoding == other.encoding)
     
     def __str__(self):
         return unicode(self).encode(self.encoding)
     
     def __unicode__(self):
-        parts = [u'<', self.name]
-        if self.attrs:
-            parts.append(u' ')
-            parts.append(u' '.join(u'%s="%s"' % x
-                for x in self.attrs.iteritems()))
-        if self.content:
-            parts.append(u'>')
-            parts.extend(unicode(x) for x in self.content)
-            parts.append(u'</')
-            parts.append(self.name)
-            parts.append(u'>')
-        else:
-            parts.append(u' />')
-        return u''.join(parts)
+        return u''.join(imap(unicode, self.parts))
 
-def html(title, head=[], body=[]):
+class tag(object):
+    def __init__(self, name, content=None, attrs=None):
+        self.name = name
+        self.attrs = {} if attrs is None else attrs
+        self.content = [] if content is None else content
+    
+    def __unicode__(self):
+        return u''.join(self._parts())
+    
+    def __eq__(self, other):
+        return (self.name == other.name
+            and self.attrs == other.attrs
+            and self.content == other.content)
+    
+    def _parts(self):
+        yield u'<'
+        yield self.name
+        for x in self.attrs.iteritems():
+            yield u' %s="%s"' % x
+        if self.content:
+            yield u'>'
+            for x in self.content:
+                yield unicode(x)
+            yield u'</'
+            yield self.name
+            yield u'>'
+        else:
+            yield u' />'
+
+class doctype(tag):
+    def __init__(self, *args):
+        self.args = args
+    
+    def __eq__(self, other):
+        return (self.args == other.args)
+    
+    def _parts(self):
+        yield u'<!DOCTYPE'
+        for a in self.args:
+            yield u' '
+            yield unicode(a)
+        yield u'>'
+
+def html(title, head=[], body=[], doctype=None):
+    d = []
+    if doctype:
+        d.append(doctype)
     h = tag('head', [
         tag('title', [title])])
     h.content.extend(head)
-    return tag('html', [h,
-        tag('body', body)])
+    d.append(tag('html', [h, tag('body', body)]))
+    return doc(d)
 
 if __name__ == '__main__':
     print html('Test document',
