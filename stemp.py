@@ -46,6 +46,9 @@ class htmltag(object):
             except TypeError:
                 a = (unicode(args),)
         return self._render(a)
+    
+    def __iter__(self):
+        raise TypeError('%r object is not iterable' % (type(self)))
 
 def _mktag(name_):
     class a(htmltag):
