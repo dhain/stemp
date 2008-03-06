@@ -1,74 +1,67 @@
 from itertools import imap
 
-class doc(object):
-    def __init__(self, parts=[], encoding='utf-8'):
-        self.parts = parts
-        self.encoding = encoding
-    
-    def __eq__(self, other):
-        return (self.parts == other.parts
-            and self.encoding == other.encoding)
-    
-    def __str__(self):
-        return unicode(self).encode(self.encoding)
-    
-    def __unicode__(self):
-        return u''.join(imap(unicode, self.parts))
+__all__ = ['htmldoc']
 
-class tag(object):
-    def __init__(self, name, content=None, attrs=None):
-        self.name = name
-        self.attrs = {} if attrs is None else attrs
-        self.content = [] if content is None else content
+def htmldoc(doctype, html, encoding='utf-8'):
+    return ''.join(('<!DOCTYPE ',' '.join(imap(str, doctype)),'>',
+        unicode(html).encode(encoding)))
+
+class htmltag(object):
+    name = u''
+    attrs = {}
     
-    def __unicode__(self):
-        return u''.join(self._parts())
-    
-    def __eq__(self, other):
-        return (self.name == other.name
-            and self.attrs == other.attrs
-            and self.content == other.content)
-    
-    def _parts(self):
+    def _parts(self, args):
         yield u'<'
         yield self.name
         for x in self.attrs.iteritems():
             yield u' %s="%s"' % x
-        if self.content:
+        if args:
             yield u'>'
-            for x in self.content:
-                yield unicode(x)
+            for a in args:
+                yield a
             yield u'</'
             yield self.name
             yield u'>'
         else:
             yield u' />'
-
-class doctype(tag):
-    def __init__(self, *args):
-        self.args = args
     
-    def __eq__(self, other):
-        return (self.args == other.args)
+    def _render(self, args=()):
+        return u''.join(self._parts(args))
     
-    def _parts(self):
-        yield u'<!DOCTYPE'
-        for a in self.args:
-            yield u' '
-            yield unicode(a)
-        yield u'>'
+    @classmethod
+    def __call__(cls, **kw):
+        i = cls()
+        i.attrs = dict((k.rstrip('_'), v) for k, v in kw.iteritems())
+        return i
+    
+    def __unicode__(self):
+        return self._render()
+    
+    def __getitem__(self, args):
+        if isinstance(args, basestring):
+            a = (unicode(args),)
+        else:
+            try:
+                a = imap(unicode, args)
+            except TypeError:
+                a = (unicode(args),)
+        return self._render(a)
 
-def html(title, head=[], body=[], doctype=None):
-    d = []
-    if doctype:
-        d.append(doctype)
-    h = tag('head', [
-        tag('title', [title])])
-    h.content.extend(head)
-    d.append(tag('html', [h, tag('body', body)]))
-    return doc(d)
+def _mktag(name_):
+    class a(htmltag):
+        name = name_
+    a.__name__ = name_
+    return name_, a()
+
+tags = ('html','head','title','body','link','script','h1','p')
+locals().update(dict(imap(_mktag, tags)))
+__all__.extend(tags)
 
 if __name__ == '__main__':
-    print html('Test document',
-        [tag('link', attrs={'rel':'stylesheet', 'href':'style.css'})],
-        ['This is some body stuff.'])
+    print html[
+        head[
+            title['the title!'],
+            link(href='/styles.css', rel='stylesheet')
+        ],
+        body(class_='the_class')[1]
+    ]
