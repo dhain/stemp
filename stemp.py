@@ -13,6 +13,20 @@ def _collapse(it):
             yield it
 
 
+class _striter(object):
+    def __init__(self, it):
+        self.it = it
+    
+    def next(self):
+        return self.it.next()
+    
+    def __iter__(self):
+        return self.it
+    
+    def __unicode__(self):
+        return u''.join(self.it)
+
+
 __all__ = ['htmldoc']
 
 
@@ -59,7 +73,7 @@ class htmltag(object):
     def __getitem__(self, children):
         if isinstance(children, basestring):
             children = ((unicode(children),),)
-        return self.render(children)
+        return _striter(self.render(children))
     
     def __iter__(self):
         return self.render()
