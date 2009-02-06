@@ -24,20 +24,31 @@ class _striter(object):
         return self.it
     
     def __unicode__(self):
-        return u''.join(self.it)
+        return u''.join(imap(unicode, self.it))
+    
+    def __str__(self):
+        return ''.join(imap(str, self.it))
 
 
 __all__ = ['htmldoc']
 
 
-def htmldoc(doctype, html, encoding='utf-8'):
-    yield '<!DOCTYPE ' + ' '.join(imap(str, doctype)) + '>'
-    if encoding is None:
-        for part in html:
+class htmldoc(object):
+    def __init__(self, doctype, html, encoding='utf-8'):
+        self.doctype = doctype
+        self.html = html
+        self.encoding = encoding
+    
+    def __iter__(self):
+        yield u'<!DOCTYPE ' + u' '.join(imap(unicode, self.doctype)) + u'>'
+        for part in self.html:
             yield part
-    else:
-        for part in html:
-            yield part.encode(encoding)
+    
+    def __unicode__(self):
+        return u''.join(self)
+    
+    def __str__(self):
+        return unicode(self).encode(self.encoding)
 
 
 class htmltag(object):
@@ -81,12 +92,13 @@ class htmltag(object):
 
 def _mktag(name_):
     class a(htmltag):
-        name = name_
-    a.__name__ = name_
+        name = name_.rstrip('_')
+    a.__name__ = a.name
     return name_, a()
 
 
-tags = ('html','head','title','body','link','script','h1','p')
+tags = ('html head title body link script span form input_ textarea '
+        'h1 h2 h3 h4 h5 h6 p a ul ol li img div br label'.split())
 locals().update(dict(imap(_mktag, tags)))
 __all__.extend(tags)
 
